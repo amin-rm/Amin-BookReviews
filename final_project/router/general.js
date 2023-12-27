@@ -30,10 +30,19 @@ public_users.post("/register", (req,res) => {
 });
 
 // Get the book list available in the shop
+// get the book list using promises :
+const getBookList = new Promise((resolve,reject) => {
+    setTimeout(() => {
+      resolve(books)
+    },1000)})
+
 public_users.get('/',function (req, res) {
-  //Write your code here
-  res.send(JSON.stringify(books,null,4))
-  return res.status(300).json({message: "Implemented !"});
+
+    getBookList.then((bookList) => {
+        res.send(JSON.stringify(bookList, null, 4));
+      }).catch((error) => {
+        res.status(404).JSON({message : "error getting the list of books"})
+      })
 });
 
 // Get book details based on ISBN
@@ -46,19 +55,29 @@ public_users.get('/isbn/:isbn',function (req, res) {
  });
   
 // Get book details based on author
-public_users.get('/author/:author',function (req, res) {
-  let author = req.params.author;
-  let bookWithAuthor = [];
-  for (const key in books)
-  {
-    const book = books[key];
-    if (book.author === author) {
-        bookWithAuthor.push(book);
+const getBookIsbn = async (isbn) => {
+    try {
+      const response = await axios.get(`https://ahmedaminero-5000.theiadockernext-1-labs-prod-theiak8s-4-tor01.proxy.cognitiveclass.ai/${isbn}`);
+      return response.data;
+    } catch (error) {
+      throw error;
     }
-  }
-  res.send(bookWithAuthor)
-  return res.status(300).json({message: "implemented"});
-});
+  };
+  public_users.get('/isbn/:isbn', async function (req, res) {
+    let isbn = req.params.isbn;
+  
+    if (isbn && books[isbn]) {
+      try {
+        const bookDetails = await getBookIsbn(isbn);
+        res.send(bookDetails);
+      } catch (error) {
+        res.status(500).json({ message: 'Cannot fetch books !' });
+      }
+    } 
+    else {
+      res.status(404).json({ message: 'Book not found' });
+    }
+  });
 
 // Get all books based on title
 public_users.get('/title/:title',function (req, res) {
